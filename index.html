@@ -87,6 +87,17 @@
 
   // Remplacez "YOUR_SCRIPT_URL" par l'URL de votre Apps Script (sans les paramètres)
   var scriptUrl = "https://script.google.com/macros/s/AKfycbzEd14Nij6jXw976-xbLwIVdx1rgi5ehEbMUCVg7MCBm5anwML0ooH4m1RxZiKRhSVENg/exec";
+function loadLogo() {
+  // Par exemple, si vous utilisez un proxy pour récupérer le logo depuis votre Apps Script :
+  var proxyUrl = "https://cors-anywhere.herokuapp.com/";
+  var logoUrl = "https://drive.google.com/uc?export=view&id=1_Zv6SbxaB9FpPBlshuD2b8CLhZejsAau";
+  // Vous pouvez aussi directement définir la source si le fichier est accessible publiquement :
+  document.getElementById("logoImg").src = logoUrl;
+  // Ou si vous souhaitez le récupérer via votre Apps Script :
+  // google.script.run.withSuccessHandler(function(dataUri) {
+  //   document.getElementById("logoImg").src = dataUri;
+  // }).getLogoDataUri();
+}
 
 
   // Chargement et affichage des clients via fetch
