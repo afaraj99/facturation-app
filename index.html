@@ -84,13 +84,33 @@
     </style>
     <script>
       var invoiceItems = [];
-      
+
+      fetch("https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ action: "ajouterFacture", data: factureData })
+})
+.then(response => response.json())
+.then(data => {
+  if (data.success) {
+    console.log("Facture envoyée :", data);
+  } else {
+    console.error("Erreur :", data.error);
+  }
+})
+.catch(error => {
+  console.error("Erreur de connexion :", error);
+});
+
       // Fonction pour charger le logo en Data URI depuis Apps Script
       function loadLogo() {
         google.script.run.withSuccessHandler(function(dataUri) {
           document.getElementById("logoImg").src = dataUri;
         }).getLogoDataUri();
       }
+      
       
       // Chargement et affichage des clients
       function loadClients() {
@@ -194,6 +214,7 @@
         invoiceItems.splice(index, 1);
         updateInvoiceItemsDisplay();
       }
+
       
       // Soumission du formulaire
       function submitFacture() {
