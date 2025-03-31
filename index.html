@@ -90,18 +90,20 @@
 
 
   // Chargement et affichage des clients via fetch
-  function loadClients() {
-    document.getElementById("loadingClients").textContent = "Chargement des clients...";
-    fetch(scriptUrl + "?action=getClients")
-      .then(response => response.json())
-      .then(clients => {
-        populateClientDropdown(clients);
-      })
-      .catch(error => {
-        console.error("Erreur de chargement des clients", error);
-        document.getElementById("loadingClients").textContent = "Erreur de chargement";
-      });
-  }
+ function loadClients() {
+  document.getElementById("loadingClients").textContent = "Chargement des clients...";
+  fetch(scriptUrl + "?action=getClients")
+    .then(response => response.text())
+    .then(text => {
+      var clients = JSON.parse(text);
+      populateClientDropdown(clients);
+    })
+    .catch(error => {
+      console.error("Erreur de chargement des clients", error);
+      document.getElementById("loadingClients").textContent = "Erreur de chargement";
+    });
+}
+
   
   function populateClientDropdown(clients) {
     var select = document.getElementById("clientSelect");
