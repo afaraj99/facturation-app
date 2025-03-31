@@ -90,19 +90,24 @@
 
 
   // Chargement et affichage des clients via fetch
- function loadClients() {
+function loadClients() {
   document.getElementById("loadingClients").textContent = "Chargement des clients...";
-  fetch(scriptUrl + "?action=getClients")
+  fetch(scriptUrl + "?action=getClients", { mode: 'no-cors' })
     .then(response => response.text())
     .then(text => {
-      var clients = JSON.parse(text);
-      populateClientDropdown(clients);
+      // Avec mode: 'no-cors', la réponse est opaque.
+      // Vous ne pouvez pas la convertir en JSON directement.
+      // Une solution consiste à afficher le texte pour debug.
+      console.log("Réponse (opaque) :", text);
+      // Ici, vous ne pourrez pas accéder aux données.
+      document.getElementById("loadingClients").textContent = "";
     })
     .catch(error => {
       console.error("Erreur de chargement des clients", error);
       document.getElementById("loadingClients").textContent = "Erreur de chargement";
     });
 }
+
 
   
   function populateClientDropdown(clients) {
