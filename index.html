@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <!-- Inclusion de jQuery et Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background: #f7f7f7;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      }
+      .header-logo {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .header-logo img {
+        max-width: 150px;
+        width: 100%;
+        display: block;
+        margin: 0 auto;
+      }
+      h1, h2, h3 {
+        text-align: center;
+      }
+      label {
+        display: block;
+        margin-top: 10px;
+        font-weight: bold;
+      }
+      input[type="text"],
+      input[type="number"],
+      select {
+        width: 100%;
+        padding: 8px;
+        margin-top: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      button {
+        display: block;
+        width: 100%;
+        margin-top: 15px;
+        padding: 10px;
+        font-size: 16px;
+        background: #0073e6;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #005bb5;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 10px;
+      }
+      table, th, td {
+        border: 1px solid #ccc;
+        padding: 5px;
+        text-align: center;
+      }
+      .hidden {
+        display: none;
+      }
+      #loadingClients, #loadingArticles, #processingMessage {
+        text-align: center;
+        color: blue;
+        font-style: italic;
+        margin-top: 5px;
+      }
+    </style>
+    <script>
+      var invoiceItems = [];
+      
+      // Fonction pour charger le logo en Data URI depuis Apps Script
+      function loadLogo() {
+        google.script.run.withSuccessHandler(function(dataUri) {
+          document.getElementById("logoImg").src = dataUri;
+        }).getLogoDataUri();
+      }
+      
+      // Chargement et affichage des clients
+      function loadClients() {
+        document.getElementById("loadingClients").textContent = "Chargement des clients...";
+        google.script.run.withSuccessHandler(populateClientDropdown).getClients();
+      }
+      
+      function populateClientDropdown(clients) {
+        var select = document.getElementById("clientSelect");
+        select.innerHTML = "";
+        clients.forEach(function(client) {
+          var option = document.createElement("option");
+          // Stocker les données avec "|" comme séparateur
+          option.value = client.nom + "|" + client.ice + "|" + client.adresse;
+          option.textContent = client.nom;
+          select.appendChild(option);
+        });
+        $("#clientSelect").select2({
+          placeholder: "Sélectionnez un client connu",
+          width: '100%'
+        });
+        document.getElementById("loadingClients").textContent = "";
+      }
+      
+      // Chargement et affichage des articles
+      function loadArticles() {
+        document.getElementById("loadingArticles").textContent = "Chargement des articles...";
+        google.script.run.withSuccessHandler(populateArticles).getArticles();
+      }
+      
+      function populateArticles(articles) {
+        var select = document.getElementById("articleSelect");
+        select.innerHTML = "";
+        articles.forEach(function(article) {
+          var option = document.createElement("option");
+          option.value = article.nom;  // On stocke seulement le nom
+          option.dataset.id = article.id;
+          option.dataset.prix = article.prix;
+          option.textContent = article.nom + " - " + article.prix + " MAD";
+          select.appendChild(option);
+        });
+        $("#articleSelect").select2({
+          placeholder: "Sélectionnez un article",
+          width: '100%'
+        });
+        document.getElementById("loadingArticles").textContent = "";
+      }
+      
+      // Gestion du choix client connu ou nouveau
+      function onClientOptionChange() {
+        var known = document.querySelector('input[name="clientOption"]:checked').value;
+        if (known === "known") {
+          document.getElementById("clientSelectContainer").classList.remove("hidden");
+          document.getElementById("newClientContainer").classList.add("hidden");
+          loadClients();
+        } else {
+          document.getElementById("clientSelectContainer").classList.add("hidden");
+          document.getElementById("newClientContainer").classList.remove("hidden");
+        }
+      }
+      
+      // Ajout d'un article via le select2
+      function addArticleItem() {
+        var selected = $("#articleSelect").val();
+        if (!selected) {
+          alert("Veuillez sélectionner un article.");
+          return;
+        }
+        var articleName = selected;
+        var selectedOption = document.getElementById("articleSelect").selectedOptions[0];
+        var price = selectedOption.dataset.prix;
+        var quantity = document.getElementById("quantite").value;
+        if (!quantity) {
+          alert("Veuillez saisir la quantité.");
+          return;
+        }
+        invoiceItems.push({
+          article: articleName,
+          quantite: quantity,
+          prix: price
+        });
+        updateInvoiceItemsDisplay();
+        $("#articleSelect").val(null).trigger("change");
+        document.getElementById("quantite").value = "1";
+      }
+      
+      function updateInvoiceItemsDisplay() {
+        var tableBody = document.getElementById("invoiceItemsBody");
+        tableBody.innerHTML = "";
+        invoiceItems.forEach(function(item, index) {
+          var row = document.createElement("tr");
+          row.innerHTML = "<td>" + item.article + "</td>" +
+                          "<td>" + item.quantite + "</td>" +
+                          "<td>" + item.prix + " MAD</td>" +
+                          "<td><button onclick='removeItem(" + index + ")'>Supprimer</button></td>";
+          tableBody.appendChild(row);
+        });
+      }
+      
+      function removeItem(index) {
+        invoiceItems.splice(index, 1);
+        updateInvoiceItemsDisplay();
+      }
+      
+      // Soumission du formulaire
+      function submitFacture() {
+        document.getElementById("processingMessage").textContent = "Traitement en cours...";
+        var clientOption = document.querySelector('input[name="clientOption"]:checked').value;
+        var client, ice, adresse;
+        if (clientOption === "known") {
+          var selected = $("#clientSelect").val();
+          if (!selected) {
+            alert("Veuillez sélectionner un client.");
+            document.getElementById("processingMessage").textContent = "";
+            return;
+          }
+          var parts = selected.split("|");
+          client = parts[0];
+          ice = parts[1];
+          adresse = parts[2];
+        } else {
+          client = document.getElementById("client").value;
+          ice = document.getElementById("ice").value;
+          adresse = document.getElementById("adresse").value;
+        }
+        if (!client || !ice || !adresse) {
+          alert("Veuillez remplir toutes les informations client.");
+          document.getElementById("processingMessage").textContent = "";
+          return;
+        }
+        var data = {
+          client: client,
+          ice: ice,
+          adresse: adresse,
+          articles: invoiceItems
+        };
+        google.script.run.withSuccessHandler(function(response) {
+          document.getElementById("processingMessage").textContent = "Facture envoyée !";
+          $("input[name='clientOption']").prop("checked", false);
+          $("#clientSelect").val(null).trigger("change");
+          document.getElementById("clientSelectContainer").classList.add("hidden");
+          document.getElementById("newClientContainer").classList.add("hidden");
+          document.getElementById("client").value = "";
+          document.getElementById("ice").value = "";
+          document.getElementById("adresse").value = "";
+          invoiceItems = [];
+          updateInvoiceItemsDisplay();
+          setTimeout(function(){
+            document.getElementById("processingMessage").textContent = "";
+          }, 3000);
+        }).ajouterFacture(data);
+      }
+      
+      window.onload = function() {
+        loadLogo();
+        loadArticles();
+      };
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Entête avec logo -->
+      <div class="header-logo">
+        <img id="logoImg" src="" alt="Logo de l'entreprise">
+      </div>
+      
+      <h1>Interface de Facturation</h1>
+      
+      <!-- Section Client -->
+      <div class="section">
+        <h2>Informations Client</h2>
+        <p>Le client est-il déjà connu ?</p>
+        <label>
+          <input type="radio" name="clientOption" value="known" onclick="onClientOptionChange()"> Oui
+        </label>
+        <label>
+          <input type="radio" name="clientOption" value="new" onclick="onClientOptionChange()"> Non
+        </label>
+        
+        <!-- Dropdown pour client connu -->
+        <div id="clientSelectContainer" class="hidden">
+          <label>Sélectionnez le client :</label>
+          <select id="clientSelect" style="width:100%;"></select>
+          <div id="loadingClients"></div>
+        </div>
+        
+        <!-- Champs pour nouveau client -->
+        <div id="newClientContainer" class="hidden">
+          <label for="client">Nom du client :</label>
+          <input type="text" id="client" name="client">
+          <label for="ice">Numéro ICE :</label>
+          <input type="text" id="ice" name="ice">
+          <label for="adresse">Adresse :</label>
+          <input type="text" id="adresse" name="adresse">
+        </div>
+      </div>
+      
+      <!-- Section Articles -->
+      <div class="section">
+        <h2>Ajouter des Articles</h2>
+        <label for="articleSelect">Sélectionner un article :</label>
+        <select id="articleSelect" style="width:100%;"></select>
+        <div id="loadingArticles"></div>
+        <label for="quantite">Quantité :</label>
+        <input type="number" id="quantite" name="quantite" value="1">
+        <button onclick="addArticleItem()">Ajouter cet article</button>
+        
+        <h3>Articles ajoutés</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Article</th>
+              <th>Quantité</th>
+              <th>Prix Unitaire</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="invoiceItemsBody"></tbody>
+        </table>
+      </div>
+      
+      <button onclick="submitFacture()">Générer et Envoyer Facture</button>
+      <div id="processingMessage"></div>
+    </div>
+  </body>
+</html>
